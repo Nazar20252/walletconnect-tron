@@ -1,77 +1,94 @@
-import SignClient from "@walletconnect/sign-client";
-import { WalletConnectModal } from "@walletconnect/modal";
-import TronWeb from "tronweb";
+import { WalletConnectModal } from '@walletconnect/modal';
+import { SignClient } from '@walletconnect/sign-client';
+import TronWeb from 'tronweb';
 
-const connectBtn = document.getElementById("connect");
-const sendBtn = document.getElementById("send");
-const output = document.getElementById("output");
+const connectBtn = document.getElementById('connect');
+const trustBtn = document.getElementById('trustwallet');
+const sendBtn = document.getElementById('send');
+const output = document.getElementById('output');
 
 let tronWeb = null;
-let currentAddress = "";
+let session = null;
+let address = null;
 
-async function connectWallet() {
-  output.textContent = "🔄 Инициализация WalletConnect...";
+const projectId = '5fc507d8fc7ae913fff0b8071c7df231'; // Твой WalletConnect ID
 
-  const client = await SignClient.init({
-    projectId: "5fc507d8fc7ae913fff0b8071c7df231",
-    relayUrl: "wss://relay.walletconnect.com",
-    metadata: {
-      name: "Tron Official DApp",
-      description: "Connect to Tron via WalletConnect",
-      url: "https://tron.network",
-      icons: ["https://cryptologos.cc/logos/tron-trx-logo.png"]
-    }
-  });
+const metadata = {
+  name: 'WalletConnect Tron DApp',
+  description: 'DApp for Tron using WalletConnect',
+  url: 'https://yourapp.com',
+  icons: ['https://yourapp.com/icon.png']
+};
 
-  const modal = new WalletConnectModal({
-    projectId: "5fc507d8fc7ae913fff0b8071c7df231",
-    themeMode: "dark",
-    explorerRecommendedWalletIds: "NONE",
-    explorerExcludedWalletIds: "NONE",
-    chains: ["tron:0x2b6653dc"],
-    standaloneChains: ["tron"]
-  });
+const modal = new WalletConnectModal({
+  projectId,
+  metadata,
+  themeMode: 'dark',
+});
 
-  const { uri, approval } = await client.connect({
+const signClient = await SignClient.init({ projectId, metadata });
+
+const connectWallet = async (uriHandler) => {
+  output.textContent = '🔄 Инициализация WalletConnect...';
+
+  const { uri, approval } = await signClient.connect({
     requiredNamespaces: {
       tron: {
-        methods: ["tron_signMessage"],
-        chains: ["tron:0x2b6653dc"],
-        events: ["accountsChanged", "chainChanged"]
-      }
-    }
+        methods: ['tron_signTransaction', 'tron_signMessage'],
+        chains: ['tron:0x2b6653dc'],
+        events: ['accountsChanged', 'chainChanged'],
+      },
+    },
   });
 
-  if (uri) modal.openModal({ uri });
+  if (uri) {
+    uriHandler(uri);
+  }
 
-  const session = await approval();
+  session = await approval();
   modal.closeModal();
 
-  currentAddress = session.namespaces.tron.accounts[0].split(":")[2];
-  output.textContent = "✅ Подключено: " + currentAddress;
+  const accounts = session.namespaces.tron.accounts;
+  address = accounts[0].split(':')[2];
+  output.textContent = `✅ Подключено: ${address}`;
 
   tronWeb = new TronWeb({
-    fullHost: "https://api.trongrid.io"
+    fullHost: 'https://api.trongrid.io',
   });
 
-  const balance = await tronWeb.trx.getBalance(currentAddress);
-  output.textContent += "\n💰 Баланс: " + (balance / 1e6).toFixed(2) + " TRX";
-
+  const balance = await tronWeb.trx.getBalance(address);
+  output.textContent += `\n💰 Баланс: ${balance / 1e6} TRX`;
   sendBtn.disabled = false;
-}
+};
 
-async function sendTrx() {
-  const to = prompt("Введи адрес получателя:");
-  const amountTRX = parseFloat(prompt("Сколько TRX отправить?"));
-  const amountSun = amountTRX * 1e6;
+connectBtn.onclick = async () => {
+  await connectWallet((uri) => modal.openModal({ uri }));
+};
 
-  try {
-    const tx = await tronWeb.transactionBuilder.sendTrx(to, amountSun, currentAddress);
-    output.textContent += `\n📤 Транзакция создана: ${tx.txID}`;
-  } catch (err) {
-    output.textContent += "\n❌ Ошибка отправки: " + err.message;
-  }
-}
+trustBtn.onclick = async () => {
+  await connectWallet((uri) => {
+    const trustUrl = `https://link.trustwallet.com/wc?uri=${encodeURIComponent(uri)}`;
+    window.open(trustUrl, '_blank');
+  });
+};
 
-connectBtn.addEventListener("click", connectWallet);
-sendBtn.addEventListener("click", sendTrx);
+sendBtn.onclick = async () => {
+  if (!address || !tronWeb) return;
+
+  const tx = await tronWeb.transactionBuilder.sendTrx(
+    address,
+    1000000, // 1 TRX
+    address
+  );
+
+  const result = await signClient.request({
+    topic: session.topic,
+    chainId: 'tron:0x2b6653dc',
+    request: {
+      method: 'tron_signTransaction',
+      params: [tx],
+    },
+  });
+
+  output.textContent += `\n📤 Транзакция отправлена: ${JSON.stringify(result)}`;
+};

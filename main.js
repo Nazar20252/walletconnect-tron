@@ -11,7 +11,7 @@ let tronWeb = null;
 let session = null;
 let address = null;
 
-const projectId = '5fc507d8fc7ae913fff0b8071c7df231'; // Твой WalletConnect ID
+const projectId = '5fc507d8fc7ae913fff0b8071c7df231';
 
 const metadata = {
   name: 'WalletConnect Tron DApp',

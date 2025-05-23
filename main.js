@@ -3,7 +3,6 @@ import { SignClient } from '@walletconnect/sign-client';
 import TronWeb from 'tronweb';
 
 const connectBtn = document.getElementById('connect');
-const trustBtn = document.getElementById('trustwallet');
 const sendBtn = document.getElementById('send');
 const output = document.getElementById('output');
 
@@ -11,7 +10,7 @@ let tronWeb = null;
 let session = null;
 let address = null;
 
-const projectId = '5fc507d8fc7ae913fff0b8071c7df231';
+const projectId = '5fc507d8fc7ae913fff0b8071c7df231'; // твой WalletConnect Project ID
 
 const metadata = {
   name: 'WalletConnect Tron DApp',
@@ -28,7 +27,7 @@ const modal = new WalletConnectModal({
 
 const signClient = await SignClient.init({ projectId, metadata });
 
-const connectWallet = async (uriHandler) => {
+connectBtn.onclick = async () => {
   output.textContent = '🔄 Инициализация WalletConnect...';
 
   const { uri, approval } = await signClient.connect({
@@ -42,7 +41,7 @@ const connectWallet = async (uriHandler) => {
   });
 
   if (uri) {
-    uriHandler(uri);
+    modal.openModal({ uri });
   }
 
   session = await approval();
@@ -59,17 +58,6 @@ const connectWallet = async (uriHandler) => {
   const balance = await tronWeb.trx.getBalance(address);
   output.textContent += `\n💰 Баланс: ${balance / 1e6} TRX`;
   sendBtn.disabled = false;
-};
-
-connectBtn.onclick = async () => {
-  await connectWallet((uri) => modal.openModal({ uri }));
-};
-
-trustBtn.onclick = async () => {
-  await connectWallet((uri) => {
-    const trustUrl = `https://link.trustwallet.com/wc?uri=${encodeURIComponent(uri)}`;
-    window.open(trustUrl, '_blank');
-  });
 };
 
 sendBtn.onclick = async () => {

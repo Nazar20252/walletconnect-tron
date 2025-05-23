@@ -1,16 +1,13 @@
 {
-  "name": "wc-modal-only",
-  "version": "1.0.0",
+  "name": "walletconnect-tron",
+  "type": "module",
   "scripts": {
-    "dev": "vite"
+    "start": "serve ."
   },
   "dependencies": {
-    "@wagmi/core": "^2.17.2",
-    "@walletconnect/modal": "^2.7.0",
-    "@walletconnect/sign-client": "^2.20.3",
-    "tronweb": "^6.0.3"
-  },
-  "devDependencies": {
-    "vite": "^5.0.0"
+    "@walletconnect/modal": "^2.6.4",
+    "@walletconnect/sign-client": "^2.10.6",
+    "tronweb": "^4.5.0",
+    "serve": "^14.2.0"
   }
 }
